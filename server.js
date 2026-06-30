@@ -62,15 +62,36 @@ app.post('/api/register', (req, res) => {
   const inPending = pendingUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (inUsers || inPending) return res.status(409).json({ error:'Ese email ya está registrado o pendiente' });
 
+  const code = String(Math.floor(100000 + Math.random() * 900000)); // código de 6 dígitos
+
   pendingUsers.push({
     id: nextPendId++,
     email,
     password,
     igUrl: igUrl || null,
+    code,
+    verified: false,
     requestedAt: new Date().toISOString()
   });
 
   res.status(201).json({ ok:true, status:'pending' });
+});
+
+// Verificar código de 6 dígitos
+app.post('/api/register/verify', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) return res.status(400).json({ error:'Código requerido' });
+
+  const lc = email.toLowerCase();
+  const p  = pendingUsers.find(u => u.email.toLowerCase() === lc);
+  if (!p) return res.status(404).json({ error:'Solicitud no encontrada' });
+
+  if (p.code !== String(code).trim()) {
+    return res.status(401).json({ error:'Código incorrecto' });
+  }
+
+  p.verified = true;
+  res.json({ ok:true });
 });
 
 // Consultar estado del registro (el cliente hace polling)
@@ -79,7 +100,8 @@ app.get('/api/register/status', (req, res) => {
   if (!email) return res.status(400).json({ error:'email requerido' });
 
   const lc = email.toLowerCase();
-  if (pendingUsers.find(u => u.email.toLowerCase() === lc)) return res.json({ status:'pending' });
+  const pending = pendingUsers.find(u => u.email.toLowerCase() === lc);
+  if (pending) return res.json({ status:'pending', verified:pending.verified });
   if (rejectedEmails.includes(lc)) return res.json({ status:'rejected' });
   const user = users.find(u => u.email.toLowerCase() === lc);
   if (user) return res.json({ status:'approved', userId:user.id });

