@@ -1,0 +1,12 @@
+{
+  "name": "votaciones-ig",
+  "version": "1.0.0",
+  "description": "Página de votaciones de perfiles de Instagram",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

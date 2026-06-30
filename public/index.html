@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Votaciones Instagram</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+      min-height: 100vh;
+      padding: 30px 16px;
+    }
+
+    .container { max-width: 750px; margin: 0 auto; }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      font-size: 2rem;
+      margin-bottom: 6px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+
+    .admin-panel {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+
+    .admin-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .admin-form {
+      margin-top: 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .admin-form.open { display: flex; }
+
+    .admin-form input {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.95rem;
+      outline: none;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn-add { background: #fff; color: #833ab4; }
+    .btn-add:hover { opacity: 0.9; }
+
+    .btn-reset {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.5);
+      font-size: 0.82rem;
+    }
+
+    .btn-reset:hover { background: rgba(255,255,255,0.3); }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead tr {
+      background: linear-gradient(90deg, #833ab4, #fd1d1d);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fdf5ff; }
+
+    td { padding: 14px 16px; vertical-align: middle; }
+
+    .profile-cell { display: flex; align-items: center; gap: 12px; }
+
+    .avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+
+    .ig-link {
+      color: #833ab4; font-weight: 600;
+      text-decoration: none; font-size: 0.95rem; word-break: break-all;
+    }
+
+    .ig-link:hover { text-decoration: underline; }
+    .username { font-size: 0.8rem; color: #999; margin-top: 2px; }
+
+    .bar-wrap {
+      height: 6px; background: #f0f0f0;
+      border-radius: 3px; margin-top: 4px; overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #833ab4, #fd1d1d);
+      border-radius: 3px; transition: width 0.4s ease;
+    }
+
+    .votes-cell { text-align: center; width: 80px; }
+    .vote-count { font-size: 1.4rem; font-weight: 700; color: #333; display: block; }
+    .vote-label { font-size: 0.72rem; color: #aaa; }
+
+    .vote-btn {
+      background: linear-gradient(135deg, #833ab4, #fd1d1d);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 8px 18px; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .vote-btn:hover { opacity: 0.85; }
+    .vote-btn:active { transform: scale(0.96); }
+
+    .vote-btn:disabled {
+      background: #e0e0e0; color: #aaa; cursor: not-allowed;
+    }
+
+    .delete-btn {
+      background: none; border: none; color: #ddd;
+      cursor: pointer; font-size: 1.1rem; padding: 4px 8px;
+      border-radius: 6px; transition: color 0.2s;
+    }
+
+    .delete-btn:hover { color: #fd1d1d; }
+
+    .voted-badge {
+      font-size: 0.72rem; color: #833ab4;
+      font-weight: 600; margin-top: 4px; display: block;
+    }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #bbb; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; padding: 10px 22px;
+      border-radius: 30px; font-size: 0.9rem; opacity: 0;
+      transition: opacity 0.3s; pointer-events: none; z-index: 999;
+    }
+
+    .toast.show { opacity: 1; }
+
+    .footer {
+      text-align: center; color: rgba(255,255,255,0.7);
+      font-size: 0.8rem; margin-top: 24px;
+    }
+
+    #arrow { margin-left: auto; transition: transform 0.2s; }
+
+    @media (max-width: 500px) {
+      h1 { font-size: 1.5rem; }
+      td { padding: 10px 10px; }
+      .vote-btn { padding: 7px 12px; font-size: 0.82rem; }
+      .avatar { width: 36px; height: 36px; font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏆 Votaciones</h1>
+    <p class="subtitle">¡Vota por tu favorito de Instagram!</p>
+
+    <div class="admin-panel">
+      <div class="admin-toggle" onclick="toggleAdmin()">
+        <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+          <path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/>
+        </svg>
+        Agregar perfil
+        <svg id="arrow" width="14" height="14" fill="white" viewBox="0 0 24 24">
+          <path d="M7 10l5 5 5-5z"/>
+        </svg>
+      </div>
+      <div class="admin-form" id="adminForm">
+        <input id="igInput" type="text"
+          placeholder="https://www.instagram.com/tuperfil/ o @usuario" />
+        <input id="nameInput" type="text"
+          placeholder="Nombre o apodo (opcional)" maxlength="40" />
+        <button class="btn btn-add" onclick="addProfile()">➕ Agregar a la lista</button>
+        <button class="btn btn-reset" onclick="resetVotes()">🔄 Reiniciar todos los votos</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Perfil</th>
+            <th style="text-align:center">Votos</th>
+            <th style="text-align:center">Votar</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5"><div class="empty-state">Cargando...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="footer">Los votos son en tiempo real y compartidos entre todos</p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const VOTED_KEY = 'ig_voted_ids_v2';
+
+    function loadVoted() {
+      try { return JSON.parse(localStorage.getItem(VOTED_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveVoted(arr) {
+      localStorage.setItem(VOTED_KEY, JSON.stringify(arr));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getInitial(name) {
+      return (name || '?').charAt(0).toUpperCase();
+    }
+
+    function toggleAdmin() {
+      const form  = document.getElementById('adminForm');
+      const arrow = document.getElementById('arrow');
+      const open  = form.classList.toggle('open');
+      arrow.style.transform = open ? 'rotate(180deg)' : '';
+    }
+
+    function parseIgInput(raw) {
+      raw = raw.trim();
+      if (!raw) return null;
+      if (raw.startsWith('http')) {
+        try {
+          const u = new URL(raw);
+          if (!u.hostname.includes('instagram.com')) return null;
+          const parts = u.pathname.split('/').filter(Boolean);
+          return { url: raw, username: parts[0] || raw };
+        } catch { return null; }
+      }
+      const clean = raw.replace('@', '');
+      return { url: `https://www.instagram.com/${clean}/`, username: clean };
+    }
+
+    async function fetchProfiles() {
+      const res = await fetch('/api/profiles');
+      return res.json();
+    }
+
+    async function render() {
+      const profiles = await fetchProfiles();
+      const voted    = loadVoted();
+      const tbody    = document.getElementById('tableBody');
+      const maxV     = profiles.reduce((m, p) => Math.max(m, p.votes), 0);
+      const medals   = ['🥇', '🥈', '🥉'];
+
+      if (!profiles.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+          <p>Aún no hay perfiles.<br>¡Agrega el primero!</p>
+        </div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = profiles.map((p, i) => {
+        const hasVoted = voted.includes(p.id);
+        const pct      = maxV > 0 ? Math.round((p.votes / maxV) * 100) : 0;
+        const rankHtml = medals[i]
+          ? `<span style="font-size:1.3rem">${medals[i]}</span>`
+          : `<span style="color:#bbb;font-weight:700">${i + 1}</span>`;
+
+        return `
+          <tr>
+            <td>${rankHtml}</td>
+            <td>
+              <div class="profile-cell">
+                <div class="avatar">${getInitial(p.label)}</div>
+                <div>
+                  <a class="ig-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">
+                    ${escHtml(p.label)}
+                  </a>
+                  <div class="username">@${escHtml(p.username)}</div>
+                  <div class="bar-wrap"><div class="bar" style="width:${pct}%"></div></div>
+                </div>
+              </div>
+            </td>
+            <td class="votes-cell">
+              <span class="vote-count">${p.votes}</span>
+              <span class="vote-label">votos</span>
+            </td>
+            <td style="text-align:center">
+              <button class="vote-btn" onclick="vote(${p.id})" ${hasVoted ? 'disabled' : ''}>
+                ${hasVoted ? '✓ Votado' : '❤️ Votar'}
+              </button>
+              ${hasVoted ? '<span class="voted-badge">¡Gracias!</span>' : ''}
+            </td>
+            <td>
+              <button class="delete-btn" title="Eliminar" onclick="deleteProfile(${p.id})">✕</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    async function addProfile() {
+      const raw    = document.getElementById('igInput').value;
+      const label  = document.getElementById('nameInput').value.trim();
+      const parsed = parseIgInput(raw);
+
+      if (!parsed) {
+        showToast('⚠️ Link de Instagram inválido');
+        return;
+      }
+
+      const res = await fetch('/api/profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: parsed.url, username: parsed.username, label: label || parsed.username })
+      });
+
+      if (res.status === 409) {
+        showToast('⚠️ Ese perfil ya está en la lista');
+        return;
+      }
+
+      if (!res.ok) {
+        showToast('Error al agregar perfil');
+        return;
+      }
+
+      document.getElementById('igInput').value  = '';
+      document.getElementById('nameInput').value = '';
+      showToast('✅ Perfil agregado');
+      render();
+    }
+
+    async function vote(id) {
+      const voted = loadVoted();
+      if (voted.includes(id)) return;
+
+      const res = await fetch(`/api/profiles/${id}/vote`, { method: 'POST' });
+      if (!res.ok) return;
+
+      voted.push(id);
+      saveVoted(voted);
+      showToast('❤️ ¡Voto registrado!');
+      render();
+    }
+
+    async function deleteProfile(id) {
+      if (!confirm('¿Eliminar este perfil?')) return;
+      await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
+      showToast('🗑️ Perfil eliminado');
+      render();
+    }
+
+    async function resetVotes() {
+      if (!confirm('¿Reiniciar TODOS los votos a 0?')) return;
+      await fetch('/api/reset', { method: 'POST' });
+      saveVoted([]);
+      showToast('🔄 Votos reiniciados');
+      render();
+    }
+
+    // Refresca los votos cada 10 segundos para ver actualizaciones en tiempo real
+    render();
+    setInterval(render, 10000);
+
+    document.getElementById('igInput').addEventListener('keydown', e => { if (e.key === 'Enter') addProfile(); });
+    document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addProfile(); });
+  </script>
+</body>
+</html>
