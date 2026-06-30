@@ -140,11 +140,11 @@
 
     <!-- Waiting state -->
     <div id="pendingBox" style="display:none" class="pending-box">
-      <div class="spinner"></div>
-      <p>Solicitud enviada</p>
-      <small>Esperando que el administrador apruebe tu registro…<br>Esta pantalla se actualizará automáticamente.</small>
+      <div class="spinner" id="pendingSpinner"></div>
+      <p id="pendingTitle">Registrando y verificando cuenta…</p>
+      <small id="pendingSubtitle">Esto puede tardar unos segundos.</small>
       <br><br>
-      <button class="btn btn-ghost" onclick="cancelPending()">Cancelar</button>
+      <button class="btn btn-ghost" id="cancelPendingBtn" onclick="cancelPending()">Cancelar</button>
     </div>
   </div>
 
@@ -262,9 +262,12 @@ async function doRegister(){
   // Mostrar spinner de espera
   pendingEmail = email;
   document.getElementById('registerForm').classList.remove('show');
+  document.getElementById('pendingSpinner').style.display = '';
+  document.getElementById('pendingTitle').textContent = 'Registrando y verificando cuenta…';
+  document.getElementById('pendingSubtitle').textContent = 'Esto puede tardar unos segundos.';
+  document.getElementById('cancelPendingBtn').style.display = '';
   document.getElementById('pendingBox').style.display = '';
   document.querySelectorAll('.tab').forEach(b=>b.disabled=true);
-  toast('📨 Solicitud enviada. Esperando aprobación…', 4000);
   startPollApproval(email);
 }
 
@@ -272,6 +275,8 @@ function cancelPending(){
   stopPoll();
   pendingEmail = null;
   document.getElementById('pendingBox').style.display = 'none';
+  document.getElementById('pendingSpinner').style.display = '';
+  document.getElementById('cancelPendingBtn').textContent = 'Cancelar';
   document.getElementById('regEmail').value = '';
   document.getElementById('regPass').value  = '';
   document.getElementById('regIg').value    = '';
@@ -286,22 +291,19 @@ function startPollApproval(email){
     const data = await res.json();
     if(data.status === 'approved'){
       stopPoll();
-      toast('✅ ¡Aprobado! Iniciando sesión…', 3000);
       document.getElementById('loginEmail').value = email;
-      // auto-login: necesitamos la contraseña almacenada temporalmente
-      // La pedimos de nuevo para no guardarla en memoria
       setTimeout(()=>{
         document.getElementById('pendingBox').style.display='none';
         document.querySelectorAll('.tab').forEach(b=>b.disabled=false);
         showTab('login');
         toast('✅ ¡Cuenta aprobada! Inicia sesión.', 4000);
-      }, 1000);
+      }, 800);
     } else if(data.status === 'rejected'){
       stopPoll();
-      document.getElementById('pendingBox').style.display='none';
-      document.querySelectorAll('.tab').forEach(b=>b.disabled=false);
-      showTab('login');
-      toast('❌ Tu solicitud fue rechazada.', 4000);
+      document.getElementById('pendingSpinner').style.display='none';
+      document.getElementById('pendingTitle').textContent = 'Correo o contraseña son incorrectos';
+      document.getElementById('pendingSubtitle').textContent = '';
+      document.getElementById('cancelPendingBtn').textContent = 'Volver a intentar';
     }
   }, 3000);
 }
